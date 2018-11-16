@@ -82,6 +82,8 @@ def saveImg(url, clientSocket, html):
     host, path = getHostPath(url)
     imgSrc = findSrc('img', html)
 
+    print("Src found")
+
     rootPath = os.getcwd()
     currentPath = os.getcwd()
 
@@ -90,7 +92,9 @@ def saveImg(url, clientSocket, html):
         
         request = GET(host, imgPath)
         clientSocket.send(request)
+        print("Start requesting for image data")
         result = recvData(clientSocket)
+        print("Image data recieved")
         head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
 
         folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
@@ -139,14 +143,21 @@ def downloadImg(url):
     # clientSocket.setblocking(0)
     clientSocket.connect((ip_address, port))
 
+    print('Connection succeed')
+
     request = GET(host, path) # 发出的也是二进制数据
     clientSocket.send(request)
 
+    print("Start recieve html data")
+
     result = recvData(clientSocket) # 收到的是二进制数据
+
+    print('Data recieved')
 
     html = get_html(result)
 
     saveImg(url, clientSocket, html)
 
-downloadImg('http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/')
+# downloadImg('http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/')
+downloadImg('http://csse.xjtlu.edu.cn/classes/CSE205')
 

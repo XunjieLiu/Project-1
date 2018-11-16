@@ -4,15 +4,13 @@ import re
 # Like findAll(img, html) ----> <img src = "blablabla" />
 def findAll(tag, htmlText):
 	if tag == 'img':
-		tag = "<img .*?>" # MD我是天才！
+		pattern = r'(src.?=.?".+?[\.jpg|\.jpeg|\.png|\.gif|\.webp]")'
 	elif tag == 'a':
-		tag = "<a .*</a>{1}"
+		pattern = r'<a.*(href.?=.?".*").*>.*</a>'
 	else:
 		return []
 
-	pattern = re.compile(tag, flags=re.IGNORECASE) # Case insensitive
-
-	result = pattern.findall(htmlText)
+	result = re.findall(pattern, htmlText)
 	
 	if len(result) != 0:
 		return result
@@ -34,8 +32,6 @@ def findSrc(tag, htmlText):
 	if len(tagList) == 0:
 		return # 如果毛都没发现 退出
 	else:
-		pattern = re.compile('src.*".*?"') # 匹配img标签的src部分
-
 		# 对于返回的标签列表， 对每个标签进行匹配，找出src部分
 		for tag in tagList:
 			if len(tag) == 0:
@@ -53,3 +49,8 @@ def findSrc(tag, htmlText):
 				continue
 
 	return result # ['imgAddress1', 'imageAddress2']
+
+file = open('html.txt', 'rb')
+
+for i in findAll('img', file.read().decode()):
+	print(i.split('"')[1])
