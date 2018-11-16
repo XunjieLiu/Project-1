@@ -1,9 +1,12 @@
 import socket
 import os
 import time
+import threading
 # 这是爸爸自己写的！ 不是第三方库！
 from my_htmlparser import *
 
+depth = 1
+oldPages = []
 
 '''
 # 我把HTML文件写到了一个文本文档里面，用于测试
@@ -13,7 +16,6 @@ with open('html.txt', 'r', encoding = 'utf-8') as htmlFile:
 def getHostPath(url):
     # 这一步获取主机和路径
     if url.find("http") >= 0: # 第一种是带http的url, i.e. http://csse.xjtlu.edu.cn
-        print(url.split('/', 3))
         host = url.split('/', 3)[2]
         path = url.split('/', 3)[3]
     else: # 第二种是不带的 裸奔的， i.e. csse.xjtlu.edu.cn
@@ -76,6 +78,57 @@ def get_html(result):
 5. 根据源码，下载
 '''
 
+def saveImg(url, clientSocket, html):
+    host, path = getHostPath(url)
+    imgSrc = findSrc('img', html)
+
+    rootPath = os.getcwd()
+    currentPath = os.getcwd()
+
+    for src in imgSrc:
+        imgPath = path + src
+        
+        request = GET(host, imgPath)
+        clientSocket.send(request)
+        result = recvData(clientSocket)
+        head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
+
+        folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
+        imgPath = url + src # 处理绝对路径与相对路径
+
+        # 将imgPath解析，提取文件名
+        for i in imgPath.split('/'):
+            if i != '' and i != 'http:':
+                folders.append(i)
+        # folders = ['csse.xjtlu.edu.cn', 'classes', 'CSE205', 'testImages', 'upside-down-cat-thumbnail.jpg'] 
+        # 文件名
+        name = imgPath.split('/')[-1]
+
+        for folder in folders:
+            if folder == name:
+                break 
+
+            if os.path.exists(folder): # 文件夹可能已经存在了
+                print('File exists')
+            else:
+                os.mkdir(folder) # 不存在的话 新建一个
+
+            # 然后跳到下一层文件夹里面
+            currentPath = currentPath + '\\' + folder
+            os.chdir(currentPath) # Jump！
+
+        # 观众朋友们大家好 现在我们来到了最底层文件夹，你们可以放下手里的图片了
+        # 如果有重名的图片 请把名字改到不重名为止
+        while(os.path.isfile(name)):
+            name = 'copy_' + name
+
+        # 一通操作 文件写好了
+        file = open(name, 'wb')
+        file.write(body)
+        file.close()
+        os.chdir(rootPath) # 回到根目录 我们准备开始下一次旅行
+        currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
+
 def downloadImg(url):
     host, path = getHostPath(url)
 
@@ -89,50 +142,11 @@ def downloadImg(url):
     request = GET(host, path) # 发出的也是二进制数据
     clientSocket.send(request)
 
-    result = recvData(clientSocket) #收到的是二进制数据
+    result = recvData(clientSocket) # 收到的是二进制数据
 
     html = get_html(result)
 
-    imgSrc = findSrc('img', html)
+    saveImg(url, clientSocket, html)
 
-    for src in imgSrc:
-        print(src)
+downloadImg('http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/')
 
-downloadImg('csse.xjtlu.edu.cn/classes/CSE205')
-    # 第一次请求的是HTML文件 所以需要解析，获取图片地址
-    #imgSrc = findSrc('img', result.decode())
-
-'''
-对于获取的图片地址，应该进行分类处理，
-一类是存储在当前目录下的， 另一类是下一层目录下的
-'''
-
-
-
-# head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
-
-
-'''
-file = open('test.jpg', 'wb')
-file.write(body)
-file.close()
-
-print("Done! ")
-# print(findSrc('img', result))
-'''
-
-'''
-
-while True:
-    # 接下来的和UDP基本一样了
-    print("Connect succeed!")
-
-    clientSocket.sendall(httpCom.encode())
-
-    print(clientSocket.recv(1024).decode())
-    
-
-
-clientSocket.close()
-print('Connection closed')
-'''

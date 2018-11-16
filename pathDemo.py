@@ -2,7 +2,7 @@ import os
 
 # current file dir = D:\Study\Year 3\CSE205\Project 1
 
-url = 'http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/'
+url = 'http://csse.xjtlu.edu.cn/classes/CSE205/testImages/upside-down-cat-thumbnail.jpg'
 
 def getPath(url):
 	result = url.split('/', 3) # 利用split，把文件路径分割出来
@@ -11,7 +11,15 @@ def getPath(url):
 	return path
 
 def creatFolder(path):
-	names = path.split('/')
+	names = []
+
+	for i in path.split('/'):
+		if i != '' and i != 'http:':
+			names.append(i)
+	# names = ['csse.xjtlu.edu.cn', 'classes', 'CSE205', 'testImages', 'upside-down-cat-thumbnail.jpg']
+	
+
+	'''
 	currentPath = os.getcwd()
 
 	for name in names:
@@ -25,6 +33,6 @@ def creatFolder(path):
 			os.chdir(currentPath)
 
 	return currentPath
+	'''
 
-path = getPath(url)
-creatFolder(path)
+creatFolder(url)
