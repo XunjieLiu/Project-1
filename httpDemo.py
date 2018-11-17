@@ -8,12 +8,23 @@ from my_htmlparser import *
 depth = 1
 oldPages = []
 
+def get_html(result):
+    head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
+
+    return head, body
+
 '''
 # 我把HTML文件写到了一个文本文档里面，用于测试
 with open('html.txt', 'r', encoding = 'utf-8') as htmlFile:
     htmlContent = htmlFile.read()
 '''
+
 def getHostPath(url):
+    if len(url.split('/')) == 1:
+        host = url
+        path = '/'
+
+        return host, path
     # 这一步获取主机和路径
     if url.find("http") >= 0: # 第一种是带http的url, i.e. http://csse.xjtlu.edu.cn
         host = url.split('/', 3)[2]
@@ -26,16 +37,39 @@ def getHostPath(url):
     if path[-1] != '/':
         path = path + '/'
 
-    return host, path
+    return host, path # ('csse.xjtlu.edu.cn', 'classes/CSE205/') 结尾一定会有'/'
 
 # 由于每次读取数据都可能超出buffer size, 所以把这块代码封装起来，以便反复利用
 def recvData(clientSocket):
+    time = 0
     # BufferSize基本上不够一次接受所有数据，所以需要循环来接受完整数据，直到接受的数据为空
-    clientSocket.settimeout(1)
+    clientSocket.settimeout(0.5)
     total_data = [] # 存储数据的容器，每次循环就更新一次
+
+    try:
+        # 如果是完全不符合HTTP协议的请求，recv毛都收不到
+        result = clientSocket.recv(4096)
+        head, body = get_html(result)
+    except:
+        print("Exception! ")
+        return []
+
+    print(head.decode().split('\r\n', 1)[0])
+
+    if head.decode().split('\r\n', 1)[0].find('200') >= 0:
+        total_data.append(result)
+    else:
+        return []
+
+    print("HTTP OK")
     while True:
         try:
+            time = time + 1
+            if time % 1000000 == 0:
+                print(time)
             result = clientSocket.recv(4096)
+            if not result:
+                break # 如果result为空 意味着数据接收完了
         except:
             break
         '''
@@ -64,10 +98,6 @@ def GET(host, path):
 
     return request
 
-def get_html(result):
-    head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
-
-    return body.decode()
 
 '''
 代码逻辑： 
@@ -80,7 +110,7 @@ def get_html(result):
 
 def saveImg(url, clientSocket, html):
     host, path = getHostPath(url)
-    imgSrc = findSrc('img', html)
+    imgSrc = findAll('img', html)
 
     print("Src found")
 
@@ -91,9 +121,14 @@ def saveImg(url, clientSocket, html):
         imgPath = path + src
         
         request = GET(host, imgPath)
+        print(request)
         clientSocket.send(request)
         print("Start requesting for image data")
         result = recvData(clientSocket)
+
+        if len(result) < 1:
+            continue
+
         print("Image data recieved")
         head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
 
@@ -134,14 +169,17 @@ def saveImg(url, clientSocket, html):
         currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
 
 def downloadImg(url):
-    host, path = getHostPath(url)
+    try:
+        host, path = getHostPath(url)
 
-    # 正常连接过程，HTTP端口为80
-    ip_address = socket.gethostbyname(host)
-    port = 80
-    clientSocket = socket.socket()
-    # clientSocket.setblocking(0)
-    clientSocket.connect((ip_address, port))
+        # 正常连接过程，HTTP端口为80
+        ip_address = socket.gethostbyname(host)
+        port = 80
+        clientSocket = socket.socket()
+        # clientSocket.setblocking(0)
+        clientSocket.connect((ip_address, port))
+    except:
+        print("Invalid url!")
 
     print('Connection succeed')
 
@@ -154,10 +192,42 @@ def downloadImg(url):
 
     print('Data recieved')
 
-    html = get_html(result)
 
-    saveImg(url, clientSocket, html)
+
+    head, html = get_html(result)
+
+    if head.decode().split('\r\n', 1)[0].find('200') >= 0:
+        saveImg(url, clientSocket, html.decode())
+    else:
+        print(head.decode().split('\r\n', 1)[0])
+
+    # 
 
 # downloadImg('http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/')
-downloadImg('http://csse.xjtlu.edu.cn/classes/CSE205')
+# downloadImg('http://csse.xjtlu.edu.cn/classes/CSE205')
+# print(getHostPath('http://csse.xjtlu.edu.cn/classes/CSE205/'))
 
+'''
+url = 'http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering//en/departments/academic-departments/computer-science-and-software-engineering/en/assets/image-cache/100000197xit.83954ef0.jpg'
+# url = 'http://csse.xjtlu.edu.cn/classes/CSE205'
+host, path = getHostPath(url)
+request = GET(host, path)
+
+print(request)
+# 正常连接过程，HTTP端口为80
+ip_address = socket.gethostbyname(host)
+port = 80
+clientSocket = socket.socket()
+# clientSocket.setblocking(0)
+clientSocket.connect((ip_address, port))
+
+clientSocket.send(request)
+
+# result = clientSocket.recv(4096)
+response = recvData(clientSocket)
+
+if len(response) > 0:
+    print(response)
+else:
+    print("Bad request")
+'''
