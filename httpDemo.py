@@ -201,6 +201,19 @@ def downloadImg(url):
     else:
         print(head.decode().split('\r\n', 1)[0])
 
+
+class ImageKiller(threading.Thread):
+    '''
+    这个类的任务 就是根据http://csse.xjtlu.edu.cn/classes/CSE205这种url，爬取这个网页的所有图片
+    只管一个网页！
+    '''
+    def __init__(self, url):
+        threading.Thread.__init__(self)
+        self.url = url
+
+
+# 用树！用树去解决多层嵌套的问题！
+
     # 
 
 # downloadImg('http://www.xjtlu.edu.cn/en/departments/academic-departments/computer-science-and-software-engineering/')
