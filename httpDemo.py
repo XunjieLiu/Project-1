@@ -11,7 +11,7 @@ oldPages = []
 def get_html(result):
     head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
 
-    return head, body
+    return head, body # 返回的是二进制的
 
 '''
 # 我把HTML文件写到了一个文本文档里面，用于测试
@@ -96,7 +96,7 @@ def GET(host, path):
     request = "GET /"+ path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection:keep-alive\r\n\r\n"
     request = request.encode()
 
-    return request
+    return request # 返回的也是二进制数据
 
 
 '''
@@ -192,9 +192,7 @@ def downloadImg(url):
 
     print('Data recieved')
 
-
-
-    head, html = get_html(result)
+    head, html = result.split(b'\r\n\r\n', 1)[1] # 将header与body分开 学长是个天才 跟我一样
 
     if head.decode().split('\r\n', 1)[0].find('200') >= 0:
         saveImg(url, clientSocket, html.decode())
