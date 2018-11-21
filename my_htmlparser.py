@@ -41,7 +41,7 @@ def findAll(tag, htmlText):
 if __name__ == '__main__':
     file = open('csse.txt', 'rb')
 
-    for i in findAll('img', file.read().decode()):
+    for i in findAll('a', file.read().decode()):
         print(i)
 
     file.close()

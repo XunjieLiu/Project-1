@@ -3,11 +3,39 @@ import os
 import time
 import threading
 import re
-# 这是爸爸自己写的！ 不是第三方库！
-from my_htmlparser import *
 
 url = 'http://csse.xjtlu.edu.cn/classes/CSE205'
 url2 = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/'
+
+# This method will return all complete segments with corresponding tag
+# Like findAll(img, html) ----> <img src = "blablabla" />
+def findAll(tag, htmlText):
+    if tag == 'img':
+        pattern = r'(src.?=.?".+?[\.jpg|\.jpeg|\.png|\.gif|\.webp]")'
+    elif tag == 'a':
+        pattern = r'<a.*(href.?=.?".*").*>.*</a>'
+    else:
+        return []
+
+    result = re.findall(pattern, htmlText)
+
+    
+    if len(result) != 0:
+        for i in range(len(result)):
+            temp = result[i].split('"')[1]
+            result[i] = temp
+
+            if result[i][0] == '/':
+                result[i] = result[i][1:]
+
+        '''
+        返回的src可能是这样的：/en/assets/image-cache/templates/xjtlu/img/hero-image-default-1.9cdb9aa2.jpg
+        也可能是这样的：testImages/upside-down-cat-thumbnail.jpg
+        我们只接受第二种，所以需要对第一种进行操作
+        '''
+        return result
+    else:
+        return []
 
 '''
 def get_html(url) 建立连接，返回HTML文件
@@ -126,6 +154,7 @@ def get_html(url):
     try:     
         head, html = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
     except:
+        print(url)
         print("This url maybe invalid")
         return
 
@@ -221,7 +250,7 @@ def save_img(src, data, url):
     currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
 
 class Image_Killer(threading.Thread):
-    def __init__(self, url, depth):
+    def __init__(self, url):
         threading.Thread.__init__(self)
         self.url = url
         self.depth = depth
@@ -232,12 +261,11 @@ class Image_Killer(threading.Thread):
         get_img(self.url, rootSrc)
 
 
-Killer = Image_Killer(url, 5)
-Killer.run()
+# Killer = Image_Killer(url)
+# Killer.run()
+
 '''
-html = get_html(url2)
-rootSrc = get_img_src(html)
-get_img(rootSrc)
+我可以先把所有的sub都爬下来呀 然后挨个下载不就可以了
 '''
 
 
