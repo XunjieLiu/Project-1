@@ -4,6 +4,8 @@ import time
 import threading
 import re
 
+lock = threading.Lock()
+
 url = 'http://csse.xjtlu.edu.cn/classes/CSE205'
 url2 = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/'
 
@@ -213,6 +215,7 @@ def get_img(url, rootPath):
         print(e)
 
 def save_img(src, data, url):
+    lock.acquire()
     rootPath = os.getcwd()
     currentPath = os.getcwd()
     folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
@@ -249,17 +252,65 @@ def save_img(src, data, url):
     os.chdir(rootPath) # 回到根目录 我们准备开始下一次旅行
     currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
 
+    lock.release()
+
+def thread_test(src, data, url):
+    lock.acquire()
+    rootPath = os.getcwd()
+    currentPath = os.getcwd()
+    folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
+    # 将imgPath解析，提取文件名
+    for i in url.split('/'):
+        if i != '' and i != 'http:':
+            folders.append(i)
+    # folders = ['csse.xjtlu.edu.cn', 'classes', 'CSE205', 'testImages', 'upside-down-cat-thumbnail.jpg'] 
+    # 文件名
+    name = src.split('/')[-1]
+
+    for folder in folders:
+        if folder == name:
+            break
+
+        if os.path.exists(folder): # 文件夹可能已经存在了
+            print('File exists')
+        else:
+            os.mkdir(folder) # 不存在的话 新建一个
+
+        # 然后跳到下一层文件夹里面
+        currentPath = currentPath + '\\' + folder
+        os.chdir(currentPath) # Jump！
+
+    # 观众朋友们大家好 现在我们来到了最底层文件夹，你们可以放下手里的图片了
+    # 如果有重名的图片 请把名字改到不重名为止
+    while(os.path.isfile(name)):
+        name = 'copy_' + name
+
+    # 一通操作 文件写好了
+    file = open(name, 'w')
+    file.write(data)
+    file.close()
+    os.chdir(rootPath) # 回到根目录 我们准备开始下一次旅行
+    currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
+
+    lock.release()
+
 class Image_Killer(threading.Thread):
     def __init__(self, url):
         threading.Thread.__init__(self)
         self.url = url
-        self.depth = depth
 
     def run(self):
         html = get_html(self.url)
         rootSrc = get_img_src(self.url, html)
         get_img(self.url, rootSrc)
 
+class threadTest(threading.Thread):
+    def __init__(self, url):
+        threading.Thread.__init__(self)
+        self.url = url
+
+    def run(self):
+        thread_test(self.url, 'test', 'http://csse.xjtlu.edu.cn/classes/CSE205')
 
 # Killer = Image_Killer(url)
 # Killer.run()
