@@ -37,6 +37,8 @@ def test(url):
         return False
 
     host, path = get_host_path(url)
+    if path[-1] == '/':
+        path = path[:-1]
     request = GET(host, path)
     clientSocket.send(request)
     result = clientSocket.recv(4096)
@@ -122,11 +124,17 @@ for i in tempList:
     html = get_html(i)
     get_links(html, root)
 '''
+'''
 killer1 = Image_Killer(root)
 killer1.run()
 
 killer2 = Image_Killer(url1)
 killer2.run()
+'''
+
+if __name__ == '__main__': 
+    killer = Image_Killer(url2, root)
+    killer.run()
 
 
         

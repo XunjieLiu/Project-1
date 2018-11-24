@@ -3,6 +3,7 @@ import os
 import time
 import threading
 import re
+from Link_Killer import *
 
 lock = threading.Lock()
 
@@ -49,7 +50,6 @@ def GET(host, path):
     # HTTP GET请求
     request = "GET /"+ path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection:keep-alive\r\n\r\n"
     request = request.encode()
-    print(request)
 
     return request # 返回的也是二进制数据
 
@@ -145,7 +145,6 @@ def get_html(url):
         print('Connection succeed')
 
     request = GET(host, path) # 发出的也是二进制数据
-    print(request)
     clientSocket.send(request)
 
     print("Start recieve html data")
@@ -167,27 +166,46 @@ def get_html(url):
     else:
         print(head.decode().split('\r\n', 1)[0])
 
-def get_img_src(url, html):
+def get_img_src(url, html, root):
     try:
+        if root[-1] != '/':
+            root = root + '/'
+
         host, path = get_host_path(url)
+        rootHost, rootPath = get_host_path(root)
         relativePath = findAll('img', html)
 
-        rootPath = []
+        print("Check findAll method: ")
+        for i in relativePath:
+            print(i)
 
-        for src in relativePath:
-            root = url + '/' + src
-            print(root)
-            rootPath.append(root)
+        path_list = []
 
-        return rootPath
-    except:
+        for img_src in relativePath:
+            temp = img_src
+            if img_src.find(rootPath) >= 0: # 如果是classes/CSE205/test.img
+                img_src = 'http://' + host + '/' + img_src
+                print("Find root path: ", img_src)
+            else:
+                print("Second kinds of src: ", img_src)
+                img_src = root + img_src # 相对路径
+                if not test(img_src):
+                    print("Third kind of src: ", img_src)
+                    img_src = root + temp # 如果直接是test.jpg这种
+
+            path_list.append(img_src)
+
+        return path_list
+    except Exception as e:
         print("Cannot get img src")
+        print(e)
 
 def get_img(url, rootPath):
     try:
         clientSocket = get_socket(url)
 
         for src in rootPath:
+            print("Src: ", src)
             host, path = get_host_path(src)
 
             '''
@@ -254,54 +272,18 @@ def save_img(src, data, url):
 
     lock.release()
 
-def thread_test(src, data, url):
-    lock.acquire()
-    rootPath = os.getcwd()
-    currentPath = os.getcwd()
-    folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
-    # 将imgPath解析，提取文件名
-    for i in url.split('/'):
-        if i != '' and i != 'http:':
-            folders.append(i)
-    # folders = ['csse.xjtlu.edu.cn', 'classes', 'CSE205', 'testImages', 'upside-down-cat-thumbnail.jpg'] 
-    # 文件名
-    name = src.split('/')[-1]
-
-    for folder in folders:
-        if folder == name:
-            break
-
-        if os.path.exists(folder): # 文件夹可能已经存在了
-            print('File exists')
-        else:
-            os.mkdir(folder) # 不存在的话 新建一个
-
-        # 然后跳到下一层文件夹里面
-        currentPath = currentPath + '\\' + folder
-        os.chdir(currentPath) # Jump！
-
-    # 观众朋友们大家好 现在我们来到了最底层文件夹，你们可以放下手里的图片了
-    # 如果有重名的图片 请把名字改到不重名为止
-    while(os.path.isfile(name)):
-        name = 'copy_' + name
-
-    # 一通操作 文件写好了
-    file = open(name, 'w')
-    file.write(data)
-    file.close()
-    os.chdir(rootPath) # 回到根目录 我们准备开始下一次旅行
-    currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
-
-    lock.release()
 
 class Image_Killer(threading.Thread):
-    def __init__(self, url):
+    def __init__(self, url, root):
         threading.Thread.__init__(self)
         self.url = url
+        self.root = root
 
     def run(self):
         html = get_html(self.url)
-        rootSrc = get_img_src(self.url, html)
+        rootSrc = get_img_src(self.url, html, self.root)
+        print(rootSrc)
+        print("Next")
         get_img(self.url, rootSrc)
 
 class threadTest(threading.Thread):
@@ -311,6 +293,17 @@ class threadTest(threading.Thread):
 
     def run(self):
         thread_test(self.url, 'test', 'http://csse.xjtlu.edu.cn/classes/CSE205')
+
+if __name__ == '__main__':
+    url = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/subsub1'
+    root = 'http://csse.xjtlu.edu.cn/classes/CSE205/'
+
+    html1 = get_html(root)
+    rootSrc1 = get_img_src(root, html1, root)
+    get_img(root, rootSrc1)
+    html = get_html(url)
+    rootSrc = get_img_src(url, html, root)
+    get_img(url, rootSrc)
 
 # Killer = Image_Killer(url)
 # Killer.run()
