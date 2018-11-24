@@ -7,9 +7,6 @@ from Link_Killer import *
 
 lock = threading.Lock()
 
-url = 'http://csse.xjtlu.edu.cn/classes/CSE205'
-url2 = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/'
-
 # This method will return all complete segments with corresponding tag
 # Like findAll(img, html) ----> <img src = "blablabla" />
 def findAll(tag, htmlText):
@@ -64,6 +61,7 @@ def recvData(clientSocket):
         result = clientSocket.recv(4096)
         head, body = result.split(b'\r\n\r\n', 1) # 将header与body分开 学长是个天才 跟我一样
     except:
+        print(result)
         print("Exception! ")
         return []
 
@@ -201,6 +199,7 @@ def get_img_src(url, html, root):
         print(e)
 
 def get_img(url, rootPath):
+    lock.acquire()
     try:
         clientSocket = get_socket(url)
 
@@ -232,8 +231,9 @@ def get_img(url, rootPath):
         print("Exception in get_img method")
         print(e)
 
+    lock.release()
+
 def save_img(src, data, url):
-    lock.acquire()
     rootPath = os.getcwd()
     currentPath = os.getcwd()
     folders = [] # 存储文件夹的名字，顺序就是深度，最后一个是文件名
@@ -270,8 +270,6 @@ def save_img(src, data, url):
     os.chdir(rootPath) # 回到根目录 我们准备开始下一次旅行
     currentPath = rootPath # 请大家更新一下手中的地图 别走岔了
 
-    lock.release()
-
 
 class Image_Killer(threading.Thread):
     def __init__(self, url, root):
@@ -282,28 +280,28 @@ class Image_Killer(threading.Thread):
     def run(self):
         html = get_html(self.url)
         rootSrc = get_img_src(self.url, html, self.root)
-        print(rootSrc)
-        print("Next")
         get_img(self.url, rootSrc)
-
-class threadTest(threading.Thread):
-    def __init__(self, url):
-        threading.Thread.__init__(self)
-        self.url = url
-
-    def run(self):
-        thread_test(self.url, 'test', 'http://csse.xjtlu.edu.cn/classes/CSE205')
 
 if __name__ == '__main__':
     url = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/subsub1'
+    url1 = 'http://csse.xjtlu.edu.cn/classes/CSE205/sub1/'
     root = 'http://csse.xjtlu.edu.cn/classes/CSE205/'
 
+    killer3 = Image_Killer(url1, root)
+
+    killer3.start()
+    
+
+    '''
     html1 = get_html(root)
     rootSrc1 = get_img_src(root, html1, root)
     get_img(root, rootSrc1)
+
     html = get_html(url)
     rootSrc = get_img_src(url, html, root)
     get_img(url, rootSrc)
+    '''
+    
 
 # Killer = Image_Killer(url)
 # Killer.run()
